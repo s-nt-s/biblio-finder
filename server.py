@@ -37,7 +37,7 @@ def search(title: str = None, author: str = None, lang: str = None):
     q = BookQuery(
         title=title,
         author=author,
-        lang=lang
+        lang=lang or "spa"
     )
     books = F.search(q)
     return books

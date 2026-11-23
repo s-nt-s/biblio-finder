@@ -16,7 +16,8 @@ class Finder:
             keywords=query.title,
             author=query.author,
             language=query.lang,
-            medium="epub"
+            medium="epub",
+            nature="ebook"
         )):
             if query.title and not isLike(query.title, i.title):
                 continue
