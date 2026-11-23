@@ -10,7 +10,7 @@ import logging
 from tempfile import NamedTemporaryFile
 from pathlib import Path
 from core.model import BookQuery, Book, Source
-from core.util import simplify
+from core.util import simplify, uq_tp
 
 
 logger = logging.getLogger(__name__)
@@ -157,7 +157,7 @@ class EpubLibre:
                 b = Book(
                     title=r['title'],
                     description=r['description'],
-                    author=(r['author'], ),
+                    author=uq_tp(*re.split(r"\s+&\s+", r['author'])),
                     source=(Source(
                         url=f"https://www.epublibre.org/libro/detalle/{r['id']}",
                         cover=f"https://images.epublibre.org/libros/{r['id']}.jpg"
