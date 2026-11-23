@@ -1,0 +1,3 @@
+ebiblio-client==1.0.0
+Unidecode==1.4.0
+waitress>=3.0,<4.0
