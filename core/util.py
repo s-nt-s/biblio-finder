@@ -21,6 +21,8 @@ def parse_obj(value):
 
 
 def simplify(s: str):
+    if s is None:
+        return None
     s = re_sp.sub(" ", s).strip()
     s = unidecode(s.lower())
     return s

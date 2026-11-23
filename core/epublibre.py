@@ -110,25 +110,32 @@ class EpubLibre:
     @staticmethod
     def create_db():
         create = FM.load("rec/epublibre.sql")
+        EpubLibre.DB.parent.mkdir(parents=True, exist_ok=True)
         with NamedTemporaryFile(
             mode="w",
             suffix=".db",
+            dir=EpubLibre.DB.parent,
         ) as tmp:
             TMP = Path(tmp.name)
             with DBlite(TMP) as db:
-                db.execute(create)
+                db.executescript(create)
                 for b in EpubLibre.iter_books():
                     db.executemany(
                         """
-                        INSERT into EPUB (id, title, description, author, language)
-                        values (?, ?, ?, ?, ?)
+                        INSERT into EPUB (
+                        id, title, description, author, language,
+                        simply_title, simply_author
+                        )
+                        values (?, ?, ?, ?, ?, ?, ?)
                         """,
-                        (b.id, b.title, b.description, b.author, b.language)
+                        (
+                            b.id, b.title, b.description, b.author, b.language,
+                            simplify(b.title), simplify(b.author)
+                        )
                     )
                 db.flush()
             tmp.flush()
-            EpubLibre.DB.parent.mkdir(exist_ok=True)
-            TMP.rename(str(EpubLibre.DB))
+            TMP.replace(EpubLibre.DB)
 
     @staticmethod
     def get_db():
@@ -137,29 +144,45 @@ class EpubLibre:
         return EpubLibre.DB
 
     def search(self, query: BookQuery):
-        a: list[str] = []
-        w: list[str] = []
-        if query.title:
-            a.append(simplify(query.title))
-            w.append("instr(simplify(title), ?) > 0")
-        if query.author:
-            a.append(simplify(query.author))
-            w.append("instr(simplify(author), ?) > 0")
+        args: list[str] = []
+        where: list[str] = []
+        fts_terms: list[str] = []
+
         if query.lang:
-            a.append(query.lang)
-            w.append("language = ?")
-        if len(w) == 0:
+            where.append("e.language = ?")
+            args.append(query.lang)
+
+        if query.title:
+            title = simplify(query.title)
+            if len(title) >= 3:
+                phrase = title.replace('"', '""')
+                fts_terms.append(f'simply_title : "{phrase}"')
+            else:
+                where.append("instr(e.simply_title, ?) > 0")
+                args.append(title)
+
+        if query.author:
+            author = simplify(query.author)
+            if len(author) >= 3:
+                phrase = author.replace('"', '""')
+                fts_terms.append(f'simply_author : "{phrase}"')
+            else:
+                where.append("instr(e.simply_author, ?) > 0")
+                args.append(author)
+
+        if fts_terms:
+            where.append(
+                "e.id IN (SELECT rowid FROM EPUB_FTS WHERE EPUB_FTS MATCH ?)"
+            )
+            args.append(" AND ".join(fts_terms))
+
+        if not where:
             raise ValueError("Hace falta al menos una condición where")
-        sql = "select * from EPUB where " + " AND ".join(w)
+
+        sql = "SELECT e.* FROM EPUB AS e WHERE " + " AND ".join(where)
         result: list[Book] = []
         with DBlite(EpubLibre.get_db(), readonly=True) as db:
-            db.create_function(
-                "simplify",
-                1,
-                simplify,
-                deterministic=True
-            )
-            for r in db.select(sql, *a):
+            for r in db.select(sql, *args):
                 b = Book(
                     title=r['title'],
                     description=r['description'],
@@ -169,8 +192,7 @@ class EpubLibre:
                         cover=f"https://images.epublibre.org/libros/{r['id']}.jpg"
                     ),)
                 )
-                if b not in result:
-                    result.append(b)
+                result.append(b)
         return tuple(result)
 
 
