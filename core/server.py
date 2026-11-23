@@ -1,31 +1,16 @@
 
 import json
 import logging
-from dataclasses import is_dataclass, asdict
 from http import HTTPStatus
 from inspect import Parameter, signature
 from wsgiref.types import StartResponse, WSGIEnvironment
 from typing import Callable, NamedTuple, Optional
 from urllib.parse import parse_qs
-from types import MappingProxyType
+from core.util import parse_obj
 
 from waitress import serve
 
 logger = logging.getLogger(__name__)
-
-
-def _jsonable(value):
-    if hasattr(value, "_asdict"):
-        value = value._asdict()
-    if is_dataclass(value):
-        value = asdict(value)
-    if isinstance(value, dict):
-        return {key: _jsonable(item) for key, item in value.items()}
-    if isinstance(value, set):
-        value = sorted(value)
-    if isinstance(value, (list, tuple)):
-        return [_jsonable(item) for item in value]
-    return value
 
 
 class ServerException(Exception):
@@ -56,7 +41,7 @@ class ServerException(Exception):
 class Rq(NamedTuple):
     method: str
     path: str
-    query: MappingProxyType
+    query: dict
 
 
 class Server:
@@ -105,7 +90,7 @@ class Server:
     ):
         reason = Server.__get_reason(status)
         body = json.dumps(
-            _jsonable(payload),
+            parse_obj(payload),
             ensure_ascii=False
         ).encode("utf-8")
         headers = [

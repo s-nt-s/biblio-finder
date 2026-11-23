@@ -1,8 +1,23 @@
 
 from unidecode import unidecode
 import re
+from dataclasses import is_dataclass, asdict
 
 re_sp = re.compile(r"\s+")
+
+
+def parse_obj(value):
+    if hasattr(value, "_asdict"):
+        value = value._asdict()
+    if is_dataclass(value):
+        value = asdict(value)
+    if isinstance(value, dict):
+        return {key: parse_obj(item) for key, item in value.items()}
+    if isinstance(value, set):
+        value = sorted(value)
+    if isinstance(value, (list, tuple)):
+        return [parse_obj(item) for item in value]
+    return value
 
 
 def simplify(s: str):

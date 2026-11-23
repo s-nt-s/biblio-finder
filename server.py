@@ -7,6 +7,7 @@ from core.finder import Finder
 from core.model import BookQuery
 from core.server import Server, ServerException
 from http import HTTPStatus
+from core.epublibre import EpubLibre
 import sys
 
 
@@ -33,11 +34,12 @@ def search(title: str = None, author: str = None, lang: str = None):
             HTTPStatus.FORBIDDEN,
             "Parámetros incorrectos"
         )
-    books = F.search(BookQuery(
+    q = BookQuery(
         title=title,
         author=author,
         lang=lang
-    ))
+    )
+    books = F.search(q)
     return books
 
 

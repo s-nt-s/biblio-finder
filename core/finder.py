@@ -2,11 +2,13 @@
 from core.ebiblio import Ebiblio, SearchQuery
 from core.model import BookQuery, Book, Source
 from core.util import isLike, uq_add, uq_tp, get_longer
+from core.epublibre import EpubLibre
 
 
 class Finder:
     def __init__(self, *ebiblio: str):
         self.__ebibilio = Ebiblio(*ebiblio)
+        self.__epublibre = EpubLibre()
 
     def __search_in_ebiblio(self, query: BookQuery):
         books: list[Book] = []
@@ -29,16 +31,22 @@ class Finder:
                 description=i.description,
                 source=(Source(
                     url=i.url,
-                    cover=i.cover_url
+                    cover=i.cover_url.replace("size=large", "size=small")
                 ),)
             )
             if b not in books:
                 books.append(b)
         return tuple(books)
 
+    def __iter_search(self, query: BookQuery):
+        for b in self.__search_in_ebiblio(query):
+            yield b
+        for b in self.__epublibre.search(query):
+            yield b
+
     def search(self, query: BookQuery):
         ok: list[Book] = []
-        for b in self.__search_in_ebiblio(query):
+        for b in self.__iter_search(query):
             index = next(
                 (i for i, x in enumerate(ok) if x.is_like(b)),
                 None
