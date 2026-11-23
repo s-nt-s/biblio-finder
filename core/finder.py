@@ -13,7 +13,7 @@ class Finder:
     def __search_in_ebiblio(self, query: BookQuery):
         books: list[Book] = []
         for i in self.__ebibilio.search(SearchQuery(
-            keywords=query.title,
+            title=query.title,
             author=query.author,
             language=query.lang,
             medium="epub",
