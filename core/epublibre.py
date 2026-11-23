@@ -86,6 +86,12 @@ class EpubLibre:
                     newline="",
                 ) as csv_body:
                     for row in csv.DictReader(csv_body):
+                        votes = int(row['Nº Votos'])
+                        if votes < 5:
+                            continue
+                        rate = float(row['Valoración'].replace(",", "."))
+                        if rate < 4:
+                            continue
                         lang = row['Idioma']
                         if lang in EpubLibre.KO_LANG:
                             continue
@@ -108,7 +114,7 @@ class EpubLibre:
             mode="w",
             suffix=".db",
         ) as tmp:
-            TMP = Path(str(tmp))
+            TMP = Path(tmp.name)
             with DBlite(TMP) as db:
                 db.execute(create)
                 for b in EpubLibre.iter_books():
