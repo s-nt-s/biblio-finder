@@ -1,11 +1,15 @@
 from opac import OpacClient, SearchQuery, SearchResult
 from core.model import Book, BookQuery, Source
 from core.util import isLike
+from os import environ
 
 
 class Opac:
     def __init__(self, *urls):
-        self.__clients = tuple(map(OpacClient, urls))
+        self.__clients = tuple(map(lambda x: OpacClient(
+            x,
+            proxy=environ.get("OPAC_PROXY")
+        ), urls))
 
     def __search(self, query: SearchQuery):
         result: list[SearchResult] = []
