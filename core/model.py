@@ -6,6 +6,7 @@ class BookQuery(NamedTuple):
     title: Optional[str] = None
     author: Optional[str] = None
     lang: Optional[str] = None
+    format: Optional[str] = None
 
 
 class Source(NamedTuple):

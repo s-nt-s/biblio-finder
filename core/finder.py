@@ -1,49 +1,26 @@
 
-from core.ebiblio import Ebiblio, SearchQuery
-from core.model import BookQuery, Book, Source
-from core.util import isLike, uq_add, uq_tp, get_longer
+from core.ebiblio import Ebiblio
+from core.model import BookQuery, Book
+from core.util import uq_add, uq_tp, get_longer
 from core.epublibre import EpubLibre
+from core.opac import Opac
 
 
 class Finder:
-    def __init__(self, *ebiblio: str):
+    def __init__(self, ebiblio: tuple[str, ...] = (), opac: tuple[str, ...] = ()):
         self.__ebibilio = Ebiblio(*ebiblio)
         self.__epublibre = EpubLibre()
-
-    def __search_in_ebiblio(self, query: BookQuery):
-        books: list[Book] = []
-        for i in self.__ebibilio.search(SearchQuery(
-            title=query.title,
-            author=query.author,
-            language=query.lang,
-            medium="epub",
-            nature="ebook"
-        )):
-            if query.title and not isLike(query.title, i.title):
-                continue
-            author: list[str] = []
-            for c in i.contributors:
-                if c.role.lower() in ["autor", "author", "autores", "authors"]:
-                    for n in c.names:
-                        uq_add(author, n)
-            b = Book(
-                title=i.title,
-                author=tuple(author),
-                description=i.description,
-                source=(Source(
-                    url=i.url,
-                    cover=i.cover_url.replace("size=large", "size=small")
-                ),)
-            )
-            if b not in books:
-                books.append(b)
-        return tuple(books)
+        self.__opac = Opac(*opac)
 
     def __iter_search(self, query: BookQuery):
-        for b in self.__search_in_ebiblio(query):
-            yield b
-        for b in self.__epublibre.search(query):
-            yield b
+        if query.format in ("epub", None):
+            for b in self.__ebibilio.search(query):
+                yield b
+            for b in self.__epublibre.search(query):
+                yield b
+        if query.format in ("paper", None):
+            for b in self.__opac.search(query):
+                yield b
 
     def search(self, query: BookQuery):
         ok: list[Book] = []
