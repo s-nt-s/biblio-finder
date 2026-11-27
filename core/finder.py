@@ -4,6 +4,7 @@ from core.model import BookQuery, Book
 from core.util import uq_add, uq_tp, get_longer
 from core.epublibre import EpubLibre
 from core.opac import Opac
+from core.casaencendida import CasaEncendida
 
 
 class Finder:
@@ -11,6 +12,7 @@ class Finder:
         self.__ebibilio = Ebiblio(*ebiblio)
         self.__epublibre = EpubLibre()
         self.__opac = Opac(*opac)
+        self.__casaencendida = CasaEncendida()
 
     def __iter_search(self, query: BookQuery):
         if query.format in ("epub", None):
@@ -21,6 +23,8 @@ class Finder:
         if query.format in ("paper", None):
             for b in self.__opac.search(query):
                 yield b
+        for b in self.__casaencendida.search(query):
+            yield b
 
     def search(self, query: BookQuery):
         ok: list[Book] = []
